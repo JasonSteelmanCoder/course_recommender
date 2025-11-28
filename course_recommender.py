@@ -386,6 +386,17 @@ y_train = loaded_y_train["y_train"]
 
 
 
+## grab actuals for each student-instance (for use later in model evaluation)
+actuals = [
+    np.where(binary_course_set == 1)[0] + 1            ## +1 because courses are 1-indexed, while probability indexes start at 0
+    for binary_course_set in y_test
+]
+
+
+
+
+
+
 ## train the model
 print(f"--- Starting Model Training  ---")
 history = full_feature_model.fit(
@@ -412,12 +423,6 @@ test_prediction = full_feature_model.predict(X_test)
 top_tens = [
     np.argsort(probability_set)[-10:][::-1] + 1       ## +1 because courses are 1-indexed, while probability indexes start at 0
     for probability_set in test_prediction
-]
-
-## grab actuals for each student-instance
-actuals = [
-    np.where(binary_course_set == 1)[0] + 1            ## +1 because courses are 1-indexed, while probability indexes start at 0
-    for binary_course_set in y_test
 ]
 
 
