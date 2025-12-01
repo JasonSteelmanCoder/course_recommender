@@ -394,74 +394,76 @@ actuals = [
 
 
 
-## train in rounds of 5 epochs (i.e. if i is in range 8, there will be 40 epochs--five at a time before evaluating)
-for i in range(8):
-
-    ## train the model
-    print(f"--- Starting Model Training  ---")
-    history = full_feature_model.fit(
-        X_train, y_train,
-        validation_data=(X_test, y_test),
-        epochs=5,
-        batch_size=32,
-        callbacks=[ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, verbose=1)],
-        verbose=1
-    )
 
 
+
+## train the model
+print(f"--- Starting Model Training  ---")
+history = full_feature_model.fit(
+    X_train, y_train,
+    validation_data=(X_test, y_test),
+    epochs=40,
+    batch_size=32,
+    callbacks=[ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, verbose=1)],
+    verbose=1
+)
 
 
 
 
 
-    print(f"--- evaluating model ---")
-
-    ## do preliminary evaluation of model for logging
-
-    ## grab top 10 test predictions for each student-instance
-    test_prediction = full_feature_model.predict(X_test)
-    top_tens = [
-        np.argsort(probability_set)[-10:][::-1] + 1       ## +1 because courses are 1-indexed, while probability indexes start at 0
-        for probability_set in test_prediction
-    ]
 
 
-    ## copy X_test and add some things
-    numbered_X_test = copy.deepcopy(X_test)
-    numbered_X_test["sample_number"] = [j for j in range(len(y_test))]
-    numbered_X_test["actual"] = actuals
-    numbered_X_test["predicted"] = top_tens
 
-    ## pivot the dictionary so that each key in the new dictionary represents a student-term instance
-    pivoted_dictionary = {
-        sample_number: {
-            'current_term_actual': actual,
-            'current_term_prediction': predicted
-        }
-        for sample_number, actual, predicted in zip(
-            numbered_X_test["sample_number"],
-            numbered_X_test["actual"],
-            numbered_X_test["predicted"]
-        )
+
+print(f"--- evaluating model ---")
+
+## do preliminary evaluation of model
+
+## grab top 10 test predictions for each student-instance
+test_prediction = full_feature_model.predict(X_test)
+top_tens = [
+    np.argsort(probability_set)[-10:][::-1] + 1       ## +1 because courses are 1-indexed, while probability indexes start at 0
+    for probability_set in test_prediction
+]
+
+
+## copy X_test and add some things
+numbered_X_test = copy.deepcopy(X_test)
+numbered_X_test["sample_number"] = [j for j in range(len(y_test))]
+numbered_X_test["actual"] = actuals
+numbered_X_test["predicted"] = top_tens
+
+## pivot the dictionary so that each key in the new dictionary represents a student-term instance
+pivoted_dictionary = {
+    sample_number: {
+        'current_term_actual': actual,
+        'current_term_prediction': predicted
     }
+    for sample_number, actual, predicted in zip(
+        numbered_X_test["sample_number"],
+        numbered_X_test["actual"],
+        numbered_X_test["predicted"]
+    )
+}
 
-    ## for each student-instance in test, check how many of their actual courses are in the top 10 recommendations
-    ## then find the mean of that number across all of the test students in this batch
-    student_instance_scores = []
-    for stu_instance, value in pivoted_dictionary.items():
+## for each student-instance in test, check how many of their actual courses are in the top 10 recommendations
+## then find the mean of that number across all of the test students in this batch
+student_instance_scores = []
+for stu_instance, value in pivoted_dictionary.items():
 
-        current_term_actual = value["current_term_actual"]
-        current_term_prediction = value["current_term_prediction"]
+    current_term_actual = value["current_term_actual"]
+    current_term_prediction = value["current_term_prediction"]
 
-        scores = []
-        for term in current_term_actual:
-            scores.append(int(term in current_term_prediction))
-            
-        student_instance_scores.append(np.mean(scores))
+    scores = []
+    for term in current_term_actual:
+        scores.append(int(term in current_term_prediction))
+        
+    student_instance_scores.append(np.mean(scores))
 
-    pct_correct_in_top_10 = np.mean(student_instance_scores)
+pct_correct_in_top_10 = np.mean(student_instance_scores)
 
-    print(pct_correct_in_top_10)
+print(pct_correct_in_top_10)
 
 
 
