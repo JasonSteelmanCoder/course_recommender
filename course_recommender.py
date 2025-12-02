@@ -9,8 +9,9 @@ from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Embedding, LSTM, Dense, concatenate, TimeDistributed, Dropout, GlobalAveragePooling1D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import AUC, Precision, Recall
-from tensorflow.keras.callbacks import ReduceLROnPlateau
+from tensorflow.keras.callbacks import ReduceLROnPlateau, CSVLogger
 from tensorflow.keras.losses import BinaryFocalCrossentropy
+
 
 # print(tf.config.list_physical_devices('GPU'))
 
@@ -397,6 +398,13 @@ actuals = [
 
 
 
+
+
+## initialize callback function objects
+csv_logger = CSVLogger('binary_focal_crossentropy_without_core_with_batch_size_32.csv')
+lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, verbose=1),
+
+
 ## train the model
 print(f"--- Starting Model Training  ---")
 history = full_feature_model.fit(
@@ -404,7 +412,10 @@ history = full_feature_model.fit(
     validation_data=(X_test, y_test),
     epochs=40,
     batch_size=32,
-    callbacks=[ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, verbose=1)],
+    callbacks=[
+        lr_reducer,
+        csv_logger
+    ],
     verbose=1
 )
 
