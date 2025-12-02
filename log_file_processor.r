@@ -8,7 +8,7 @@ logged_data <- read.csv('binary_focal_crossentropy_without_core_with_batch_size_
 
 plot(logged_data$epoch, 
      logged_data$val_loss, 
-     type = 'l', 
+     type = 'ol', 
      main = 'Validation Loss',
      xlab = 'Epoch', 
      ylab = 'Validation Loss')
