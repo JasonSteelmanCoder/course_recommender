@@ -399,10 +399,14 @@ actuals = [
 
 
 
+## set details for logging
+model_number = '002'
+model_name = 'reduce_patience_to_1'
+
 
 ## initialize callback function objects
-csv_logger = CSVLogger('binary_focal_crossentropy_without_core_with_batch_size_32.csv')
-lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, verbose=1),
+csv_logger = CSVLogger(f'logs/{model_number}_{model_name}.csv')
+lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=1, min_lr=1e-7, verbose=1),
 
 
 ## train the model
