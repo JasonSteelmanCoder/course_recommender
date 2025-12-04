@@ -158,8 +158,8 @@ input_history = Input(shape=(max_terms, max_courses_per_term), name='history_inp
 input_subject = Input(shape=(max_terms, max_courses_per_term), name='subject_input')
 input_course_level = Input(shape=(max_terms, max_courses_per_term), name='course_level_input')
 input_major = Input(shape=(1,), name='major_input')
-input_standing = Input(shape=(1,), name='standing_input')
-input_gpa = Input(shape=(1,), name='gpa_input')
+# input_standing = Input(shape=(1,), name='standing_input')
+# input_gpa = Input(shape=(1,), name='gpa_input')
 # input_history_core = Input(shape=(max_terms, max_courses_per_term, len(core_columns)), name='history_core_input')
 
 
@@ -182,7 +182,6 @@ combined_course_features = concatenate([
 
 # --- Use GlobalAveragePooling1D to average the embeddings of all courses within each term ---
 # This creates a single, stable vector representation for each term
-#term_vectors = TimeDistributed(GlobalAveragePooling1D())(embedded_courses)
 term_vectors = TimeDistributed(GlobalAveragePooling1D())(combined_course_features)
 
 
@@ -191,17 +190,22 @@ lstm_out = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(term_vectors)
 
 # --- Path 2: Process Student Static Features ---
 major_embedding = Embedding(input_dim=major_vocab_size, output_dim=10)(input_major)
-standing_embedding = Embedding(input_dim=standing_vocab_size, output_dim=5)(input_standing)
+# standing_embedding = Embedding(input_dim=standing_vocab_size, output_dim=5)(input_standing)
 major_flat = tf.keras.layers.Flatten()(major_embedding)
-standing_flat = tf.keras.layers.Flatten()(standing_embedding)
-static_features_concat = concatenate([major_flat, standing_flat, input_gpa])
+# standing_flat = tf.keras.layers.Flatten()(standing_embedding)
+static_features_concat = concatenate([
+    major_flat 
+    # standing_flat, 
+    # input_gpa
+])
 
 
 # --- Combine All Paths ---
 final_concat = concatenate([lstm_out, static_features_concat])
 dense_1 = Dropout(0.5)(Dense(256, activation='relu')(final_concat))
 dense_2 = Dropout(0.4)(Dense(128, activation='relu')(dense_1))
-output_layer = Dense(len(mlb.classes_), activation='sigmoid', name='output')(dense_2)
+dense_3 = Dropout(0.3)(Dense(128, activation='relu')(dense_2))
+output_layer = Dense(len(mlb.classes_), activation='sigmoid', name='output')(dense_3)
 
 # --- Create and Compile Model ---
 full_feature_model = Model(
@@ -210,8 +214,8 @@ full_feature_model = Model(
         # input_history_core, 
         input_subject,
         input_major, 
-        input_standing, 
-        input_gpa, 
+        # input_standing, 
+        # input_gpa, 
         input_course_level 
     ],
     outputs=output_layer
@@ -400,29 +404,31 @@ actuals = [
 
 
 ## set details for logging
-model_number = '002'
-model_name = 'reduce_patience_to_1'
+model_number = '006'
+model_name = 'add_a_dense_layer_and_add_back_history'
 
 
 ## initialize callback function objects
 csv_logger = CSVLogger(f'logs/{model_number}_{model_name}.csv')
-lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=1, min_lr=1e-7, verbose=1),
+lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1),
 
 
-## train the model
-print(f"--- Starting Model Training  ---")
-history = full_feature_model.fit(
-    X_train, y_train,
-    validation_data=(X_test, y_test),
-    epochs=40,
-    batch_size=32,
-    callbacks=[
-        lr_reducer,
-        csv_logger
-    ],
-    verbose=1
-)
-
+try:
+    ## train the model
+    print(f"--- Starting Model Training  ---")
+    history = full_feature_model.fit(
+        X_train, y_train,
+        validation_data=(X_test, y_test),
+        epochs=40,
+        batch_size=32,
+        callbacks=[
+            lr_reducer,
+            csv_logger
+        ],
+        verbose=1
+    )
+finally:
+    full_feature_model.save(f'logs/{model_number}_{model_name}.keras')    
 
 
 
