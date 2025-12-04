@@ -1,7 +1,7 @@
 ## Log File Processor
 ## This script turns model training log files into graphs for analysis
 
-logged_data <- read.csv('logs/006_add_a_dense_layer_and_add_back_history.csv')
+logged_data <- read.csv('logs/007_test_model_saving.csv')
 
 # print(head(logged_data))
 

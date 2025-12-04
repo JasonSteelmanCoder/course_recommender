@@ -404,8 +404,8 @@ actuals = [
 
 
 ## set details for logging
-model_number = '006'
-model_name = 'add_a_dense_layer_and_add_back_history'
+model_number = '007'
+model_name = 'test_model_saving'
 
 
 ## initialize callback function objects
@@ -427,11 +427,12 @@ try:
         ],
         verbose=1
     )
-finally:
-    full_feature_model.save(f'logs/{model_number}_{model_name}.keras')    
-
-
-
+except KeyboardInterrupt:
+    print("Training Interrupted!")
+    full_feature_model.save(f'logs/{model_number}_{model_name}.keras')
+else:
+    print("Training Completed!")
+    full_feature_model.save(f'logs/{model_number}_{model_name}.keras')
 
 
 
