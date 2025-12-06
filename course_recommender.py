@@ -159,7 +159,7 @@ input_subject = Input(shape=(max_terms, max_courses_per_term), name='subject_inp
 input_course_level = Input(shape=(max_terms, max_courses_per_term), name='course_level_input')
 input_major = Input(shape=(1,), name='major_input')
 # input_standing = Input(shape=(1,), name='standing_input')
-# input_gpa = Input(shape=(1,), name='gpa_input')
+input_gpa = Input(shape=(1,), name='gpa_input')
 # input_history_core = Input(shape=(max_terms, max_courses_per_term, len(core_columns)), name='history_core_input')
 
 
@@ -194,18 +194,17 @@ major_embedding = Embedding(input_dim=major_vocab_size, output_dim=10)(input_maj
 major_flat = tf.keras.layers.Flatten()(major_embedding)
 # standing_flat = tf.keras.layers.Flatten()(standing_embedding)
 static_features_concat = concatenate([
-    major_flat 
+    major_flat, 
     # standing_flat, 
-    # input_gpa
+    input_gpa
 ])
 
 
 # --- Combine All Paths ---
 final_concat = concatenate([lstm_out, static_features_concat])
-dense_1 = Dropout(0.5)(Dense(256, activation='relu')(final_concat))
-dense_2 = Dropout(0.4)(Dense(128, activation='relu')(dense_1))
-dense_3 = Dropout(0.3)(Dense(128, activation='relu')(dense_2))
-output_layer = Dense(len(mlb.classes_), activation='sigmoid', name='output')(dense_3)
+dense_1 = Dropout(0.3)(Dense(256, activation='relu')(final_concat))
+dense_2 = Dropout(0.2)(Dense(128, activation='relu')(dense_1))
+output_layer = Dense(len(mlb.classes_), activation='sigmoid', name='output')(dense_2)
 
 # --- Create and Compile Model ---
 full_feature_model = Model(
@@ -215,7 +214,7 @@ full_feature_model = Model(
         input_subject,
         input_major, 
         # input_standing, 
-        # input_gpa, 
+        input_gpa, 
         input_course_level 
     ],
     outputs=output_layer
@@ -404,13 +403,13 @@ actuals = [
 
 
 ## set details for logging
-model_number = '007'
-model_name = 'test_model_saving'
+model_number = '011'
+model_name = 'take_out_core_and_add_gpa'
 
 
 ## initialize callback function objects
 csv_logger = CSVLogger(f'logs/{model_number}_{model_name}.csv')
-lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1),
+lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=7, verbose=1),
 
 
 try:
@@ -419,7 +418,7 @@ try:
     history = full_feature_model.fit(
         X_train, y_train,
         validation_data=(X_test, y_test),
-        epochs=40,
+        epochs=120,
         batch_size=32,
         callbacks=[
             lr_reducer,

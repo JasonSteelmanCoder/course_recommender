@@ -1,14 +1,14 @@
 ## Log File Processor
 ## This script turns model training log files into graphs for analysis
 
-logged_data <- read.csv('logs/007_test_model_saving.csv')
+logged_data <- read.csv('logs/011_take_out_core_and_add_gpa.csv')
 
 # print(head(logged_data))
 
 
 plot(logged_data$epoch, 
      logged_data$val_loss, 
-     type = 'ol', 
+     type = 'l', 
      main = 'Validation Loss',
      xlab = 'Epoch', 
      ylab = 'Validation Loss')
