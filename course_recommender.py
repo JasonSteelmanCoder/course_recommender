@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 import numpy as np
 import copy
+import json
 from datetime import datetime
 import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder, StandardScaler, MultiLabelBinarizer
@@ -153,6 +154,14 @@ def get_course_level(course_id):
 
 
 
+
+
+
+
+
+
+
+
 # --- Define Model Inputs ---
 input_history = Input(shape=(max_terms, max_courses_per_term), name='history_input')
 input_subject = Input(shape=(max_terms, max_courses_per_term), name='subject_input')
@@ -184,7 +193,6 @@ combined_course_features = concatenate([
 # This creates a single, stable vector representation for each term
 term_vectors = TimeDistributed(GlobalAveragePooling1D())(combined_course_features)
 
-
 # The LSTM now processes this improved sequence of term vectors.
 lstm_out = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(term_vectors)
 
@@ -198,7 +206,6 @@ static_features_concat = concatenate([
     # standing_flat, 
     input_gpa
 ])
-
 
 # --- Combine All Paths ---
 final_concat = concatenate([lstm_out, static_features_concat])
@@ -227,6 +234,15 @@ full_feature_model.compile(
 )
 
 # print(full_feature_model.summary())
+
+
+#### full_feature_model = load_model('C:/users/js81535/Desktop/course_recommender/logs/014_run_011_as_is_for_a_few_more_hours.keras')
+
+
+
+
+
+
 
 
 
@@ -403,8 +419,8 @@ actuals = [
 
 
 ## set details for logging
-model_number = '011'
-model_name = 'take_out_core_and_add_gpa'
+model_number = '020'
+model_name = 'prep_for_post_processing'
 
 
 ## initialize callback function objects
@@ -418,7 +434,7 @@ try:
     history = full_feature_model.fit(
         X_train, y_train,
         validation_data=(X_test, y_test),
-        epochs=120,
+        epochs=1,   
         batch_size=32,
         callbacks=[
             lr_reducer,
@@ -428,10 +444,10 @@ try:
     )
 except KeyboardInterrupt:
     print("Training Interrupted!")
-    full_feature_model.save(f'logs/{model_number}_{model_name}.keras')
+    # full_feature_model.save(f'logs/{model_number}_{model_name}.keras')
 else:
     print("Training Completed!")
-    full_feature_model.save(f'logs/{model_number}_{model_name}.keras')
+    # full_feature_model.save(f'logs/{model_number}_{model_name}.keras')
 
 
 
@@ -487,4 +503,68 @@ pct_correct_in_top_10 = np.mean(student_instance_scores)
 print(pct_correct_in_top_10)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## filtered eval
+
+## grab the top 100 predictions for every student-term
+top_hundred = [
+    np.argsort(probability_set)[-100:][::-1] + 1       ## +1 because courses are 1-indexed, while probability indexes start at 0
+    for probability_set in test_prediction
+]
+
+normal_top_10_scores = []
+filtered_top_10_scores = []
+
+## loop through all the student-terms
+for i in range(len(numbered_X_test["sample_number"])):
+
+    ## find the courses that the student has already taken
+    sample_history = numbered_X_test["history_input"][i]
+    already_taken = set(sample_history.flatten()[sample_history.flatten() != 0])
+
+    ## make a list of course recommendations that skips courses already taken
+    top_100_at_sample = top_hundred[i]
+    mask = ~np.isin(top_100_at_sample, list(already_taken))
+    filtered_100 = top_100_at_sample[mask]
+
+    ## make a version of students' actual courses that excludes any courses they are REtaking
+    actual_at_sample = numbered_X_test["actual"][i]
+    actuals_mask = ~np.isin(actual_at_sample, list(already_taken))
+    filtered_actuals_at_sample = actual_at_sample[actuals_mask]
+    
+
+    if len(filtered_actuals_at_sample) > 0:      ## guard against divide by zero
+        
+        ## grab only the top 10 recommendations from the filtered list
+        filtered_top_10 = filtered_100[:10]
+
+        ## loop through the filtered actual courses and see if they are in the filtered and unfiltered recommendations
+        num_in_normal_top_10 = 0 
+        num_in_filtered_top_10 = 0
+        for actual in filtered_actuals_at_sample:
+            if actual in top_tens[i]:
+                num_in_normal_top_10 += 1
+            if actual in filtered_top_10:
+                num_in_filtered_top_10  += 1
+        
+        normal_top_10_scores.append(num_in_normal_top_10 / len(filtered_actuals_at_sample))
+        filtered_top_10_scores.append(num_in_filtered_top_10 / len(filtered_actuals_at_sample))
+
+## average the performance on filtered and unfiltered metrics
+print(np.mean(normal_top_10_scores))
+print(np.mean(filtered_top_10_scores))
 

@@ -1,7 +1,10 @@
 ## Log File Processor
 ## This script turns model training log files into graphs for analysis
 
-logged_data <- read.csv('logs/011_take_out_core_and_add_gpa.csv')
+## bests:
+## 011_take_out_core_and_add_gpa
+
+logged_data <- read.csv('logs/019_try_dropouts_of_0_25_and_0_2.csv')
 
 # print(head(logged_data))
 
@@ -14,6 +17,8 @@ plot(logged_data$epoch,
      ylab = 'Validation Loss')
 
 
-old_data <- read.csv('logs/001_binary_focal_crossentropy_without_core_with_batch_size_32.csv')
-print(logged_data$val_loss)
+old_data <- read.csv('logs/011_take_out_core_and_add_gpa.csv')
 print(old_data$val_loss)
+print(logged_data$val_loss)
+
+
